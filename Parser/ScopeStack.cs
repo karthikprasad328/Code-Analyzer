@@ -122,7 +122,9 @@ namespace CodeAnalysis
 
   class Test
   {
-    public struct Elem 
+      public enum days { Sat, Sun, Mon, Tue, Wed, Thu, Fri };
+      public delegate void del1();
+    public struct ElemStack 
     {
       public string type;
       public string name;

@@ -1,12 +1,14 @@
-﻿///////////////////////////////////////////////////////////////////////
-// Parser.cs - Parser detects code constructs defined by rules       //
-// ver 1.3                                                           //
-// Language:    C#, 2008, .Net Framework 4.0                         //
-// Platform:    Dell Precision T7400, Win7, SP1                      //
-// Application: Demonstration for CSE681, Project #2, Fall 2011      //
-// Author:      Jim Fawcett, CST 4-187, Syracuse University          //
-//              (315) 443-3948, jfawcett@twcny.rr.com                //
-///////////////////////////////////////////////////////////////////////
+﻿///////////////////////////////////////////////////////////////////////////
+// Parser.cs - Parser detects code constructs defined by rules           //
+// ver 1.4                                                              //
+// Language:    C#, 2008, .Net Framework 4.0                             //
+// Platform:    Dell Precision T7400, Win7, SP1                          //
+// Application: Demonstration for CSE681, Project #2, Fall 2011          //
+// Author:      Author:Karthik Nanjundaswamy Guru Prasad(SUID:994344418) //
+//              Syracuse University                                      //
+//Source Code:  Jim Fawcett, CST 4-187, Syracuse University              //
+//              (315) 443-3948, jfawcett@twcny.rr.com                    //
+///////////////////////////////////////////////////////////////////////////
 /*
  * Module Operations:
  * ------------------
@@ -15,13 +17,11 @@
  */
 /* Required Files:
  *   IRulesAndActions.cs, RulesAndActions.cs, Parser.cs, Semi.cs, Toker.cs
- *   
- * Build command:
- *   csc /D:TEST_PARSER Parser.cs IRulesAndActions.cs RulesAndActions.cs \
- *                      Semi.cs Toker.cs
- *   
+ *
  * Maintenance History:
  * --------------------
+ * ver 1.4 : 27 Sep 2014
+ * -Added relationship analysis to the parser
  * ver 1.3 : 24 Sep 2011
  * - Added exception handling for exceptions thrown while parsing.
  *   This was done because Toker now throws if it encounters a
@@ -73,9 +73,9 @@ namespace CodeAnalysis
   }
 
   class TestParser
-  {
-    //----< process commandline to get file references >-----------------
 
+    //----< process commandline to get file references >-----------------
+  {
     static List<string> ProcessCommandline(string[] args)
     {
       List<string> files = new List<string>();
@@ -94,6 +94,17 @@ namespace CodeAnalysis
       return files;
     }
 
+    static void ShowCommandLine(string[] args)
+    {
+      Console.Write("\n  Commandline args are:\n");
+      foreach (string arg in args)
+      {
+        Console.Write("  {0}", arg);
+      }
+      Console.Write("\n\n  current directory: {0}", System.IO.Directory.GetCurrentDirectory());
+      Console.Write("\n\n");
+    }
+
     //----< Test Stub >--------------------------------------------------
 
 #if(TEST_PARSER)
@@ -102,6 +113,8 @@ namespace CodeAnalysis
     {
       Console.Write("\n  Demonstrating Parser");
       Console.Write("\n ======================\n");
+
+      ShowCommandLine(args);
 
       List<string> files = TestParser.ProcessCommandline(args);
       foreach (object file in files)
@@ -136,13 +149,60 @@ namespace CodeAnalysis
         List<Elem> table = rep.locations;
         foreach (Elem e in table)
         {
-          Console.Write("\n  {0,10}, {1,25}, {2,5}, {3,5}", e.type, e.name, e.begin, e.end);
+            Console.Write("\n  {0,10}, {1,20}, {2,5}, {3,5}, {4,5}, {5,5}", e.type, e.name, e.begin, e.end, e.end - e.begin, e.scopecount);
         }
         Console.WriteLine();
         Console.Write("\n\n  That's all folks!\n\n");
         semi.close();
       }
-    }
+
+      //  /// if you wanna print final repository
+      //Console.WriteLine("\n the finalrepository after pass 1:\n");
+      //Repository repo_ = Repository.getInstance();
+      //List<Elem> table1 = repo_.locations2;
+      //  foreach(Elem e in table1)
+      //      Console.Write("\n  {0,10}, {1,20}, {2,5}, {3,5}, {4,5}, {5,5}", e.type, e.name, e.begin, e.end, e.end - e.begin, e.scopecount);
+     
+       //Pass2-detect relationships between the files
+      Console.WriteLine("\n\n\n Processed all files- Time for Pass 2 ");
+      Repository.pass = 2;
+      foreach (object file in files)
+      {
+          Console.Write("\n  Processing file for relationship analysis- {0}\n", file as string);
+
+          CSsemi.CSemiExp semi = new CSsemi.CSemiExp();
+
+          if (!semi.open(file as string))
+          {
+              Console.Write("\n  Can't open {0}\n\n", args[0]);
+              return;
+          }
+
+          Console.Write("\n  Relationship  Analysis");
+          Console.Write("\n ----------------------------\n");
+
+          BuildCodeAnalyzer builder = new BuildCodeAnalyzer(semi);
+          Parser parser = builder.build2();
+
+          try
+          {
+              while (semi.getSemi())
+                  parser.parse(semi);
+              
+          }
+          catch (Exception ex)
+          {
+              Console.Write("\n\n  {0}\n", ex.Message);
+          }
+          Console.Write("\n\n  Relationship table contains:\n");
+          Repository rep = Repository.getInstance();
+          List<Elem3> table3 = rep.relationships;
+           foreach (Elem3 e in table3)
+          {
+              Console.WriteLine("{0,10} {1,20} {2,10} {3,10} {4,20}", e.childtype, e.childname, e.relation, e.parenttype, e.parentname);
+          }
+       }
+   }
 #endif
   }
 }
